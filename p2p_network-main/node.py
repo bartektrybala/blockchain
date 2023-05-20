@@ -5,7 +5,6 @@ import socket
 import commands
 from message import Message
 
-os.system("color")
 
 
 class Node:
