@@ -1,0 +1,11 @@
+Setup node:
+
+1. Run genesis node: 
+```
+python3 p2p_network-main/gensis_node.py
+```
+
+2. Run node:
+```
+python3 p2p_network-main/python3.py
+```
