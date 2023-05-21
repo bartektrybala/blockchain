@@ -1,43 +1,52 @@
+import json
+import random
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 from hashlib import sha256
 
-from example_schema.base_types import BaseClass
+from example_schema.consts import SIDE_LINKS_NUMBER
+from example_schema.converters import converter
 
 
 @dataclass
-class Transaction(BaseClass):
+class Transaction:
     sender: str  # public key
     recipient: str  # public key
     amount: int
 
 
 @dataclass
-class Block(BaseClass):
-    prev_hash: str
+class Block:
+    previous_hash: str
     transactions: list[Transaction]
     timestamp: datetime
+    security_hashes: list[str] = field(default_factory=list)
 
-    def get_hash(self):
-        string_reqpresentation = self.to_string() + self.prev_hash
-        return sha256(string_reqpresentation.encode()).hexdigest()
+    def get_hash(self) -> str:
+        unstructured = converter.unstructure(self)
+        stringified = json.dumps(unstructured)
+        return sha256(stringified.encode()).hexdigest()
 
 
 initial_block = Block(
-    "first_block", [Transaction("satoshi", "genesis", 100)], datetime.now()
+    previous_hash="first_block",
+    transactions=[Transaction("satoshi", "genesis", 100)],
+    timestamp=datetime.now() - timedelta(hours=1),
 )
 
 
 @dataclass
-class Chain(BaseClass):
-    chain: list[Block] = field(default_factory=lambda: [initial_block])
+class Chain:
+    chain: list[Block] = field(default_factory=lambda: [initial_block.get_hash()])
 
     def get_last_block(self):
         return self.chain[-1]
 
-    def add_block(self, transactions: list[Transaction]):
-        block = Block(self.get_last_block().get_hash(), transactions, datetime.now())
-        self.chain.append(block)
+    def _calc_number_of_security_hashes(self):
+        chain_length = len(self.chain)
+        return chain_length if chain_length < SIDE_LINKS_NUMBER else SIDE_LINKS_NUMBER
 
-
-# TODO: add Wallets
+    def add_block(self, block: Block):
+        number_of_security_hashes = self._calc_number_of_security_hashes()
+        block.security_hashes = random.choices(self.chain, k=number_of_security_hashes)
+        self.chain.append(block.get_hash())
