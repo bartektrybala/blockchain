@@ -29,6 +29,8 @@ class Blockchain:
     def validate_proof(self, block_string, proof):
         guess = (block_string + str(proof)).encode()
         guess_hash = hashlib.sha256(guess).hexdigest()
+        # TODO: more granular difficulty
+        # check if guess_hash < 0001, 0002
         return guess_hash[:4] == "0000"  # Example difficulty condition
 
     def create_block(self, previous_block_hash, extra_hashes=None):
