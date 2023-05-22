@@ -3,8 +3,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from hashlib import sha256
 
-from example_schema.consts import SIDE_LINKS_NUMBER
-from example_schema.converters import converter
+from schema.consts import SIDE_LINKS_NUMBER
+from schema.converters import converter
 
 
 @dataclass
@@ -41,26 +41,29 @@ class Chain:
     def get_last_block(self):
         return self.chain[-1]
 
-    def _calc_number_of_security_hashes(self):
-        chain_length = len(self.chain)
+    def _number_of_security_hashes(self, chain_length: int):
         return (
             SIDE_LINKS_NUMBER if chain_length > SIDE_LINKS_NUMBER else chain_length - 1
         )
 
-    def add_block(self, block: Block):
-        number_of_security_hashes = self._calc_number_of_security_hashes()
-        chain_length = len(self.chain) + 1
-        for i in range(1, number_of_security_hashes):
+    def _select_security_hashes(self, block: Block) -> list[str]:
+        chain_length = len(self.chain)
+        number_of_security_hashes = self._number_of_security_hashes(chain_length)
+        security_hashes = []
+
+        for i in range(1, number_of_security_hashes + 1):
             previous_block_int = int.from_bytes(block.previous_hash)
-            x_i = sha256((previous_block_int + i).to_bytes(32, "big")).digest()
-            n_1 = int.from_bytes(x_i) % (chain_length - i)
+            x_i = sha256((previous_block_int + i).to_bytes(32)).digest()
+            n_i = int.from_bytes(x_i) % (chain_length - i)
 
-            for k, security_hash in enumerate(block.security_hashes):
-                if security_hash == x_i:
-                    # TODO: check if this is correct
-                    n_1 = chain_length - i + k - 1
-                    break
-            block.security_hashes.append(self.chain[n_1])
+            k = 1
+            while self.chain[n_i] in security_hashes:
+                n_i = chain_length - i + k - 1
+                k += 1
 
-        current_block_hash_with_security_hashes = block.get_hash()
-        self.chain.append(current_block_hash_with_security_hashes)
+            security_hashes.append(self.chain[n_i])
+        return security_hashes
+
+    def add_block(self, block: Block):
+        block.security_hashes = self._select_security_hashes(block)
+        self.chain.append(block.get_hash())
