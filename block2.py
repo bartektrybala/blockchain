@@ -41,3 +41,17 @@ class Blockchain:
         self.chain.append(block)
         self.current_block = block
         return block
+# TEST #1:
+blockchain = Blockchain()
+blockchain.create_block('0')
+block_index, record_index = blockchain.add_data_record('Data record 1')
+print(f"Added record {record_index} to block {block_index}")
+block_index, record_index = blockchain.add_data_record('Data record 2')
+print(f"Added record {record_index} to block {block_index}")
+block_number = 1
+block = blockchain.retrieve_block(block_number)
+if block:
+    print(f"Retrieved block {block_number}:")
+    print(block)
+else:
+    print(f"Block {block_number} does not exist.")
