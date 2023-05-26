@@ -20,11 +20,21 @@ class Block:
     transactions: list[Transaction]
     timestamp: datetime
     security_hashes: list[bytes] = field(default_factory=list)
+    proof: int = 0
 
     def get_hash(self):
         unstructured = converter.unstructure(self)
         stringified = json.dumps(unstructured)
         return sha256(stringified.encode()).digest()
+
+    def mine_block(self, difficulty: int):
+        target = "0" * difficulty
+        while self.get_hash().hex()[:difficulty] != target:
+            self.proof += 1
+
+    def validate_block(self, difficulty: int) -> bool:
+        target = "0" * difficulty
+        return self.get_hash().hex()[:difficulty] == target
 
 
 initial_block = Block(
@@ -36,7 +46,7 @@ initial_block = Block(
 
 @dataclass
 class Chain:
-    chain: list[Block] = field(default_factory=lambda: [initial_block.get_hash()])
+    chain: list[Block] = field(default_factory=lambda: [initial_block])
 
     def get_last_block(self):
         return self.chain[-1]
@@ -57,13 +67,30 @@ class Chain:
             n_i = int.from_bytes(x_i) % (chain_length - i)
 
             k = 1
-            while self.chain[n_i] in security_hashes:
+            while self.chain[n_i].get_hash() in security_hashes:
                 n_i = chain_length - i + k - 1
                 k += 1
 
-            security_hashes.append(self.chain[n_i])
+            security_hashes.append(self.chain[n_i].get_hash())
         return security_hashes
 
-    def add_block(self, block: Block):
+    def add_block(self, block: Block, difficulty: int):
         block.security_hashes = self._select_security_hashes(block)
-        self.chain.append(block.get_hash())
+        block.mine_block(difficulty)
+        self.chain.append(block)
+
+    def validate_chain(self, difficulty: int) -> bool:
+        for i in range(1, len(self.chain)):
+            current_block = self.chain[i]
+            previous_block = self.chain[i - 1]
+
+            if current_block.get_hash() != current_block.get_hash():
+                return False
+
+            if not current_block.validate_block(difficulty):
+                return False
+
+            if current_block.previous_hash != previous_block.get_hash():
+                return False
+
+        return True
