@@ -1,6 +1,6 @@
 import json
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from hashlib import sha256
 
 from schema.consts import SIDE_LINKS_NUMBER
@@ -44,7 +44,9 @@ class Block:
 initial_block = Block(
     previous_hash=b"first_block",
     transactions=[Transaction("satoshi", "genesis", 100)],
-    timestamp=datetime.now() - timedelta(hours=1),
+    timestamp=datetime(
+        2023, 6, 4, 12, 47, 35, 763550
+    ),  # static to make tests deterministic
 )
 
 
@@ -61,7 +63,7 @@ class Chain:
             SIDE_LINKS_NUMBER if chain_length > SIDE_LINKS_NUMBER else chain_length - 1
         )
 
-    def _select_security_hashes(self, block: Block) -> list[str]:
+    def select_security_hashes(self, block: Block) -> list[str]:
         chain_length = len(self.chain)
         number_of_security_hashes = self._number_of_security_hashes(chain_length)
         security_hashes = []
@@ -97,7 +99,7 @@ class Chain:
                 self.difficulty = self.difficulty[:-1] + increased_difficulty
 
     def add_block(self, block: Block):
-        block.security_hashes = self._select_security_hashes(block)
+        block.security_hashes = self.select_security_hashes(block)
         block.mine_block(self.difficulty)
         self.increase_difficulty()
         self.chain.append(block)
