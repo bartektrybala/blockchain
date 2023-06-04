@@ -27,14 +27,18 @@ class Block:
         stringified = json.dumps(unstructured)
         return sha256(stringified.encode()).digest()
 
-    def mine_block(self, difficulty: int):
-        target = "0" * difficulty
-        while self.get_hash().hex()[:difficulty] != target:
+    def mine_block(self, difficulty: str):
+        while self.validate_block(difficulty):
             self.proof += 1
 
     def validate_block(self, difficulty: int) -> bool:
-        target = "0" * difficulty
-        return self.get_hash().hex()[:difficulty] == target
+        """
+        The difficulty adjustment mechanism in PoW blockchains is designed to avoid sudden
+        and drastic changes in the difficulty level. Rather than adding or removing leading
+        zeros directly, most PoW blockchains use a more sophisticated approach to adjust the difficulty.
+        """
+        zeros_count = len(difficulty)
+        return self.get_hash().hex()[:zeros_count] == difficulty
 
 
 initial_block = Block(
@@ -47,6 +51,7 @@ initial_block = Block(
 @dataclass
 class Chain:
     chain: list[Block] = field(default_factory=lambda: [initial_block])
+    difficulty: str = "0001"
 
     def get_last_block(self):
         return self.chain[-1]
@@ -74,12 +79,30 @@ class Chain:
             security_hashes.append(self.chain[n_i].get_hash())
         return security_hashes
 
-    def add_block(self, block: Block, difficulty: int):
+    def increase_difficulty(self):
+        """
+        Example:
+        0001
+        0002
+        ...
+        0009
+        00001
+        """
+        if len(self.chain) % 4 == 0:
+            difficulty_counter = self.difficulty[-1]
+            if difficulty_counter == "9":
+                self.difficulty = len(self.difficulty) * "0" + "1"
+            else:
+                increased_difficulty = str(int(difficulty_counter) + 1)
+                self.difficulty = self.difficulty[:-1] + increased_difficulty
+
+    def add_block(self, block: Block):
         block.security_hashes = self._select_security_hashes(block)
-        block.mine_block(difficulty)
+        block.mine_block(self.difficulty)
+        self.increase_difficulty()
         self.chain.append(block)
 
-    def validate_chain(self, difficulty: int) -> bool:
+    def validate_chain(self) -> bool:
         for i in range(1, len(self.chain)):
             current_block = self.chain[i]
             previous_block = self.chain[i - 1]
@@ -87,7 +110,7 @@ class Chain:
             if current_block.get_hash() != current_block.get_hash():
                 return False
 
-            if not current_block.validate_block(difficulty):
+            if not current_block.validate_block(self.difficulty):
                 return False
 
             if current_block.previous_hash != previous_block.get_hash():

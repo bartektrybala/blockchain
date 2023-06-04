@@ -30,16 +30,18 @@ b3 = Block(
 chain = Chain()
 
 assert set(chain._select_security_hashes(b1)) == set()
-chain.add_block(block=b1, difficulty=3)
+chain.add_block(block=b1)
+assert chain.difficulty == "0001"
 
 assert set(chain._select_security_hashes(b2)) == {initial_block.get_hash()}
-chain.add_block(block=b2, difficulty=3)
+chain.add_block(block=b2)
+assert chain.difficulty == "0001"
 
 assert set(chain._select_security_hashes(b3)) == {
     initial_block.get_hash(),
     b1.get_hash(),
 }
-chain.add_block(block=b3, difficulty=3)
+chain.add_block(block=b3)
 
 
 b4 = Block(
@@ -53,7 +55,8 @@ assert set(chain._select_security_hashes(b4)) == {
     b1.get_hash(),
     b2.get_hash(),
 }
-chain.add_block(block=b4, difficulty=3)
+chain.add_block(block=b4)
+assert chain.difficulty == "0002"
 
 
 b5 = Block(
@@ -68,7 +71,8 @@ assert set(chain._select_security_hashes(b5)) == {
     b2.get_hash(),
     b3.get_hash(),
 }
-chain.add_block(block=b5, difficulty=3)
+chain.add_block(block=b5)
+assert chain.difficulty == "0002"
 
 
 b6 = Block(
@@ -84,4 +88,5 @@ assert set(chain._select_security_hashes(b6)) == {
     b3.get_hash(),
     b4.get_hash(),
 }
-chain.add_block(block=b6, difficulty=3)
+chain.add_block(block=b6)
+assert chain.difficulty == "0002"
