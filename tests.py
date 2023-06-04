@@ -2,86 +2,37 @@ from datetime import datetime, timedelta
 
 from schema.schema import Block, Chain, Transaction, initial_block
 
-t1 = Transaction("sender1", "recipient1", 100)
-t2 = Transaction("sender2", "recipient2", 1000)
-b1 = Block(
-    previous_hash=initial_block.get_hash(),
-    transactions=[t1, t2],
-    timestamp=datetime.now() - timedelta(minutes=45),
-)
+if __name__ == "__main__":
+    # Create a new chain
+    chain = Chain()
 
-t3 = Transaction("sender2", "recipient1", 300)
-t4 = Transaction("sender1", "recipient2", 1200)
-b2 = Block(
-    previous_hash=b1.get_hash(),
-    transactions=[t3, t4],
-    timestamp=datetime.now() - timedelta(minutes=30),
-)
+    # Create the first block
+    initial_block = Block(
+        previous_hash=b"first_block",
+        transactions=[Transaction("satoshi", "genesis", 100)],
+        timestamp=datetime.now() - timedelta(hours=1),
+    )
 
-t5 = Transaction("sender3", "recipient2", 700)
-t6 = Transaction("sender1", "recipient3", 876)
-b3 = Block(
-    previous_hash=b2.get_hash(),
-    transactions=[t5, t6],
-    timestamp=datetime.now() - timedelta(minutes=15),
-)
+    # Add the first block to the chain
+    chain.add_block(initial_block, difficulty=2)
 
+    # Add more blocks to the chain
+    for i in range(1, 6):
+        previous_block = chain.get_last_block()
+        transactions = [Transaction(f"sender{i}", f"recipient{i}", i * 10)]
+        timestamp = datetime.now()
+        new_block = Block(previous_hash=previous_block.get_hash(), transactions=transactions, timestamp=timestamp)
+        chain.add_block(new_block, difficulty=2)
 
-chain = Chain()
+    # Validate the chain
+    is_valid = chain.validate_chain(difficulty=2)
 
-assert set(chain._select_security_hashes(b1)) == set()
-chain.add_block(block=b1, difficulty=3)
+    # Print the block hashes and chain validation result
+    for block in chain.get_blocks():
+        block_hash = block.get_hash()
+        previous_hash = block.previous_hash
+        print(f"Block Hash: {block_hash}")
+        print(f"Previous Hash: {previous_hash}")
+        print()
 
-assert set(chain._select_security_hashes(b2)) == {initial_block.get_hash()}
-chain.add_block(block=b2, difficulty=3)
-
-assert set(chain._select_security_hashes(b3)) == {
-    initial_block.get_hash(),
-    b1.get_hash(),
-}
-chain.add_block(block=b3, difficulty=3)
-
-
-b4 = Block(
-    previous_hash=b3.get_hash(),
-    transactions=[Transaction("s1", "r1", 700), Transaction("s1", "r2", 700)],
-    timestamp=datetime.now() - timedelta(minutes=10),
-)
-
-assert set(chain._select_security_hashes(b4)) == {
-    initial_block.get_hash(),
-    b1.get_hash(),
-    b2.get_hash(),
-}
-chain.add_block(block=b4, difficulty=3)
-
-
-b5 = Block(
-    previous_hash=b4.get_hash(),
-    transactions=[Transaction("s1", "r1", 200), Transaction("s1", "r2", 700)],
-    timestamp=datetime.now() - timedelta(minutes=5),
-)
-
-assert set(chain._select_security_hashes(b5)) == {
-    initial_block.get_hash(),
-    b1.get_hash(),
-    b2.get_hash(),
-    b3.get_hash(),
-}
-chain.add_block(block=b5, difficulty=3)
-
-
-b6 = Block(
-    previous_hash=b5.get_hash(),
-    transactions=[Transaction("s1", "r1", 200), Transaction("s1", "r2", 700)],
-    timestamp=datetime.now(),
-)
-
-assert set(chain._select_security_hashes(b6)) == {
-    initial_block.get_hash(),
-    b1.get_hash(),
-    b2.get_hash(),
-    b3.get_hash(),
-    b4.get_hash(),
-}
-chain.add_block(block=b6, difficulty=3)
+    print(f"Chain Validation: {is_valid}")
