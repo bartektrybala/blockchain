@@ -4,7 +4,7 @@ from datetime import datetime
 from hashlib import sha256
 
 from schema.consts import SIDE_LINKS_NUMBER
-from schema.converters import converter
+from blockchain.chain.converters import converter
 
 
 @dataclass
