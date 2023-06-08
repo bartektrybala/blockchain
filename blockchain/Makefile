@@ -3,5 +3,5 @@ format_all:
 	poetry run isort .
 	poetry run flake8 .
 
-check_types:
-	poetry run mypy .
+test:
+	poetry run ./manage.py test --parallel
