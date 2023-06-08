@@ -5,6 +5,8 @@ from django.db.models.fields import BinaryField, CharField, DateTimeField, Decim
 from django.db.models.fields.related import ForeignKey
 from wallets.models import Wallet
 
+from blockchain.dtos import BlockDto, TransactionDto
+
 
 class Transaction(Model):
     sender = ForeignKey(Wallet, on_delete=CASCADE, related_name="sent_transactions")
@@ -20,14 +22,24 @@ class Transaction(Model):
     def __str__(self):
         return f"{self.sender} -> {self.recipient}: {self.amount}"
 
+    def convert_to_dto(self):
+        return TransactionDto.from_transaction_object(self)
+
     # TODO: handle balance changes in save() method
 
 
 class Block(Model):
     previous_hash = BinaryField(unique=True)
-    timestamp = DateTimeField(auto_now_add=True)
+    timestamp = DateTimeField()
     security_hashes = ArrayField(BinaryField())
     proof = CharField(max_length=256)
 
     def __str__(self):
         return f"{self.previous_hash} -> {self.transactions}: {self.timestamp}"
+
+    def convert_to_dto(self) -> BlockDto:
+        return BlockDto.from_block_object(self)
+
+    def get_hash(self) -> bytes:
+        block_dto = self.convert_to_dto()
+        return block_dto.get_hash()
