@@ -24,7 +24,7 @@ class Transaction(Model):
 
 
 class Block(Model):
-    previous_hash = BinaryField()
+    previous_hash = BinaryField(unique=True)
     timestamp = DateTimeField(auto_now_add=True)
     security_hashes = ArrayField(BinaryField())
     proof = CharField(max_length=256)
