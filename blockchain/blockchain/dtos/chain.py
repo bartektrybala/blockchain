@@ -1,49 +1,18 @@
-import json
 from dataclasses import dataclass, field
 from datetime import datetime
 from hashlib import sha256
 
-from schema.consts import SIDE_LINKS_NUMBER
-from blockchain.chain.converters import converter
+from django.conf import settings
+
+from blockchain.dtos.block import BlockDto
+from blockchain.dtos.transaction import TransactionDto
+
+SIDE_LINKS_NUMBER = settings.SIDE_LINKS_NUMBER
 
 
-@dataclass
-class Transaction:
-    sender: str  # public key
-    recipient: str  # public key
-    amount: int
-
-
-@dataclass
-class Block:
-    previous_hash: bytes
-    transactions: list[Transaction]
-    timestamp: datetime
-    security_hashes: list[bytes] = field(default_factory=list)
-    proof: int = 0
-
-    def get_hash(self):
-        unstructured = converter.unstructure(self)
-        stringified = json.dumps(unstructured)
-        return sha256(stringified.encode()).digest()
-
-    def mine_block(self, difficulty: str):
-        while self.validate_block(difficulty):
-            self.proof += 1
-
-    def validate_block(self, difficulty: int) -> bool:
-        """
-        The difficulty adjustment mechanism in PoW blockchains is designed to avoid sudden
-        and drastic changes in the difficulty level. Rather than adding or removing leading
-        zeros directly, most PoW blockchains use a more sophisticated approach to adjust the difficulty.
-        """
-        zeros_count = len(difficulty)
-        return self.get_hash().hex()[:zeros_count] == difficulty
-
-
-initial_block = Block(
+initial_block = BlockDto(
     previous_hash=b"first_block",
-    transactions=[Transaction("satoshi", "genesis", 100)],
+    transactions=[TransactionDto("satoshi", "genesis", 100)],
     timestamp=datetime(
         2023, 6, 4, 12, 47, 35, 763550
     ),  # static to make tests deterministic
@@ -51,11 +20,11 @@ initial_block = Block(
 
 
 @dataclass
-class Chain:
-    chain: list[Block] = field(default_factory=lambda: [initial_block])
+class ChainDto:
+    chain: list[BlockDto] = field(default_factory=lambda: [initial_block])
     difficulty: str = "0001"
 
-    def get_last_block(self) -> Block:
+    def get_last_block(self) -> BlockDto:
         return self.chain[-1]
 
     def _number_of_security_hashes(self, chain_length: int):
@@ -63,7 +32,7 @@ class Chain:
             SIDE_LINKS_NUMBER if chain_length > SIDE_LINKS_NUMBER else chain_length - 1
         )
 
-    def select_security_hashes(self, block: Block) -> list[str]:
+    def select_security_hashes(self, block: BlockDto) -> list[str]:
         chain_length = len(self.chain)
         number_of_security_hashes = self._number_of_security_hashes(chain_length)
         security_hashes = []
@@ -98,7 +67,7 @@ class Chain:
                 increased_difficulty = str(int(difficulty_counter) + 1)
                 self.difficulty = self.difficulty[:-1] + increased_difficulty
 
-    def add_block(self, block: Block) -> None:
+    def add_block(self, block: BlockDto) -> None:
         block.security_hashes = self.select_security_hashes(block)
         block.mine_block(self.difficulty)
         self.increase_difficulty()

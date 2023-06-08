@@ -34,9 +34,6 @@ class Block(Model):
     security_hashes = ArrayField(BinaryField())
     proof = CharField(max_length=256)
 
-    def __str__(self):
-        return f"{self.previous_hash} -> {self.transactions}: {self.timestamp}"
-
     def convert_to_dto(self) -> BlockDto:
         return BlockDto.from_block_object(self)
 
