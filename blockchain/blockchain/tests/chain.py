@@ -1,9 +1,11 @@
-from datetime import datetime
+from copy import deepcopy
+from datetime import datetime, timedelta
 from decimal import Decimal
-from unittest import TestCase
 
 from django.apps import apps as django_apps
+from django.test.testcases import TestCase
 
+from blockchain.dtos import BlockDto, ChainDto, TransactionDto, initial_block
 from blockchain.models import Block, Chain, Transaction
 from blockchain.tests.utils import SetupMixin
 
@@ -56,27 +58,180 @@ class TestChainModel(SetupMixin):
 
     def test_get_last_block_method(self):
         last_block = self.test_chain.get_last_block()
-        assert last_block == self.test_block.convert_to_dto()
+        test_block = deepcopy(self.test_block)
+        assert last_block == test_block.convert_to_dto()
 
-    def test_add_block_method(self):
-        ...
+    def test_convert_to_dto(self):
+        test_chain = deepcopy(self.test_chain)
+        chain_dto = test_chain.convert_to_dto()
+        test_block = deepcopy(self.test_block)
+        assert chain_dto == ChainDto(
+            blocks=[test_block.convert_to_dto()],
+            difficulty=self.test_chain.difficulty,
+        )
 
     def test_validate_chain_method(self):
-        ...
+        test_chain = deepcopy(self.test_chain)
+        chain_dto = test_chain.convert_to_dto()
+        assert chain_dto.validate_chain() is True
 
 
 class TestChainDto(TestCase):
-    def test_get_last_block_method(self):
-        ...
+    def test_chain_flow(self):
+        # Create a chain
+        chain = ChainDto()
+        t1 = TransactionDto(b"sender1", b"recipient1", 100)
+        t2 = TransactionDto(b"sender2", b"recipient2", 1000)
+        b1 = BlockDto(
+            previous_hash=chain.get_last_block().get_hash(),
+            transactions=[t1, t2],
+            timestamp=initial_block.timestamp - timedelta(minutes=45),
+        )
+        assert set(b1.security_hashes) == set()
+        chain.add_block(block=b1)
+        assert chain.difficulty == "0001"
+        assert chain.validate_chain() is True
 
-    def test_select_security_hashes_method(self):
-        ...
+        t3 = TransactionDto(b"sender2", b"recipient1", 300)
+        t4 = TransactionDto(b"sender1", b"recipient2", 1200)
+        b2 = BlockDto(
+            previous_hash=chain.get_last_block().get_hash(),
+            transactions=[t3, t4],
+            timestamp=initial_block.timestamp - timedelta(minutes=40),
+        )
 
-    def test_increase_difficulty_method(self):
-        ...
+        chain.add_block(block=b2)
+        assert set(b2.security_hashes) == {initial_block.get_hash()}
+        assert chain.difficulty == "0001"
+        assert chain.validate_chain() is True
 
-    def test_add_block_method(self):
-        ...
+        t5 = TransactionDto(b"sender3", b"recipient2", 700)
+        t6 = TransactionDto(b"sender1", b"recipient3", 876)
+        b3 = BlockDto(
+            previous_hash=chain.get_last_block().get_hash(),
+            transactions=[t5, t6],
+            timestamp=initial_block.timestamp - timedelta(minutes=35),
+        )
 
-    def test_validate_chain_method(self):
-        ...
+        chain.add_block(block=b3)
+        assert set(b3.security_hashes) == {
+            initial_block.get_hash(),
+            b1.get_hash(),
+        }
+        assert chain.validate_chain() is True
+
+        b4 = BlockDto(
+            previous_hash=chain.get_last_block().get_hash(),
+            transactions=[
+                TransactionDto(b"s1", b"r1", 700),
+                TransactionDto(b"s1", b"r2", 700),
+            ],
+            timestamp=initial_block.timestamp - timedelta(minutes=30),
+        )
+
+        chain.add_block(block=b4)
+        assert set(b4.security_hashes) == {
+            initial_block.get_hash(),
+            b1.get_hash(),
+            b2.get_hash(),
+        }
+        assert chain.difficulty == "0002"
+        assert chain.validate_chain() is True
+
+        b5 = BlockDto(
+            previous_hash=chain.get_last_block().get_hash(),
+            transactions=[
+                TransactionDto(b"s1", b"r1", 200),
+                TransactionDto(b"s1", b"r2", 700),
+            ],
+            timestamp=initial_block.timestamp - timedelta(minutes=25),
+        )
+
+        chain.add_block(block=b5)
+        assert set(b5.security_hashes) == {
+            initial_block.get_hash(),
+            b1.get_hash(),
+            b2.get_hash(),
+            b3.get_hash(),
+        }
+        assert chain.difficulty == "0002"
+        assert chain.validate_chain() is True
+
+        b6 = BlockDto(
+            previous_hash=chain.get_last_block().get_hash(),
+            transactions=[
+                TransactionDto(b"s1", b"r1", 200),
+                TransactionDto(b"s1", b"r2", 700),
+            ],
+            timestamp=initial_block.timestamp - timedelta(minutes=20),
+        )
+
+        chain.add_block(block=b6)
+        assert set(b6.security_hashes) == {
+            initial_block.get_hash(),
+            b1.get_hash(),
+            b2.get_hash(),
+            b3.get_hash(),
+            b4.get_hash(),
+        }
+        assert chain.difficulty == "0002"
+        assert chain.validate_chain() is True
+
+        b7 = BlockDto(
+            previous_hash=chain.get_last_block().get_hash(),
+            transactions=[
+                TransactionDto(b"s2", b"r1", 1200),
+                TransactionDto(b"s3", b"r2", 1700),
+            ],
+            timestamp=initial_block.timestamp - timedelta(minutes=15),
+        )
+        chain.add_block(block=b7)
+        assert set(b7.security_hashes) == {
+            initial_block.get_hash(),
+            b1.get_hash(),
+            b2.get_hash(),
+            b3.get_hash(),
+            b4.get_hash(),
+        }
+        assert chain.difficulty == "0002"
+        assert chain.validate_chain() is True
+
+        b8 = BlockDto(
+            previous_hash=chain.get_last_block().get_hash(),
+            transactions=[
+                TransactionDto(b"s1", b"r1", 2200),
+                TransactionDto(b"s1", b"r3", 7100),
+            ],
+            timestamp=initial_block.timestamp - timedelta(minutes=10),
+        )
+
+        chain.add_block(block=b8)
+        assert set(b8.security_hashes) == {
+            initial_block.get_hash(),
+            b2.get_hash(),
+            b3.get_hash(),
+            b4.get_hash(),
+            b5.get_hash(),
+        }
+        assert chain.difficulty == "0003"
+        assert chain.validate_chain() is True
+
+        b9 = BlockDto(
+            previous_hash=chain.get_last_block().get_hash(),
+            transactions=[
+                TransactionDto(b"s2", b"r2", 3200),
+                TransactionDto(b"s1", b"r3", 4700),
+            ],
+            timestamp=initial_block.timestamp - timedelta(minutes=5),
+        )
+
+        chain.add_block(block=b9)
+        assert set(b9.security_hashes) == {
+            initial_block.get_hash(),
+            b1.get_hash(),
+            b2.get_hash(),
+            b5.get_hash(),
+            b6.get_hash(),
+        }
+        assert chain.difficulty == "0003"
+        assert chain.validate_chain() is True

@@ -12,7 +12,7 @@ SIDE_LINKS_NUMBER = settings.SIDE_LINKS_NUMBER
 
 initial_block = BlockDto(
     previous_hash=b"first_block",
-    transactions=[TransactionDto("satoshi", "genesis", 100)],
+    transactions=[TransactionDto(b"satoshi", b"genesis", 100)],
     timestamp=datetime(
         2023, 6, 4, 12, 47, 35, 763550
     ),  # static to make tests deterministic
@@ -21,11 +21,18 @@ initial_block = BlockDto(
 
 @dataclass
 class ChainDto:
-    chain: list[BlockDto] = field(default_factory=lambda: [initial_block])
+    blocks: list[BlockDto] = field(default_factory=lambda: [initial_block])
     difficulty: str = "0001"
 
+    @staticmethod
+    def from_chain_object(chain):
+        return ChainDto(
+            blocks=[BlockDto.from_dict(block) for block in chain.blocks],
+            difficulty=chain.difficulty,
+        )
+
     def get_last_block(self) -> BlockDto:
-        return self.chain[-1]
+        return self.blocks[-1]
 
     def _number_of_security_hashes(self, chain_length: int):
         return (
@@ -33,7 +40,7 @@ class ChainDto:
         )
 
     def select_security_hashes(self, block: BlockDto) -> list[str]:
-        chain_length = len(self.chain)
+        chain_length = len(self.blocks)
         number_of_security_hashes = self._number_of_security_hashes(chain_length)
         security_hashes = []
 
@@ -43,11 +50,11 @@ class ChainDto:
             n_i = int.from_bytes(x_i) % (chain_length - i)
 
             k = 1
-            while self.chain[n_i].get_hash() in security_hashes:
+            while self.blocks[n_i].get_hash() in security_hashes:
                 n_i = chain_length - i + k - 1
                 k += 1
 
-            security_hashes.append(self.chain[n_i].get_hash())
+            security_hashes.append(self.blocks[n_i].get_hash())
         return security_hashes
 
     def increase_difficulty(self) -> None:
@@ -59,7 +66,7 @@ class ChainDto:
         0009
         00001
         """
-        if len(self.chain) % 4 == 0:
+        if len(self.blocks) % 4 == 0:
             difficulty_counter = self.difficulty[-1]
             if difficulty_counter == "9":
                 self.difficulty = len(self.difficulty) * "0" + "1"
@@ -71,12 +78,12 @@ class ChainDto:
         block.security_hashes = self.select_security_hashes(block)
         block.mine_block(self.difficulty)
         self.increase_difficulty()
-        self.chain.append(block)
+        self.blocks.append(block)
 
     def validate_chain(self) -> bool:
-        for i in range(1, len(self.chain)):
-            current_block = self.chain[i]
-            previous_block = self.chain[i - 1]
+        for i in range(1, len(self.blocks)):
+            current_block = self.blocks[i]
+            previous_block = self.blocks[i - 1]
 
             # TODO: fix this by storing difficulty in the block
             # if not current_block.validate_block(self.difficulty):

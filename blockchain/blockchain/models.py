@@ -7,6 +7,7 @@ from django.db.models.fields.related import ForeignKey
 from wallets.models import Wallet
 
 from blockchain.dtos import BlockDto, TransactionDto
+from blockchain.dtos.chain import ChainDto
 
 
 class Transaction(Model):
@@ -49,3 +50,6 @@ class Chain(Model):
 
     def get_last_block(self) -> BlockDto:
         return BlockDto.from_dict(self.blocks[-1])
+
+    def convert_to_dto(self):
+        return ChainDto.from_chain_object(self)
