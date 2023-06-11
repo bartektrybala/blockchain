@@ -16,3 +16,10 @@ To run postgres in docker:
 ```sh
 docker-compose up -d
 ```
+
+## tests
+
+To run django tests:
+```sh
+make -C blockchain test
+```
