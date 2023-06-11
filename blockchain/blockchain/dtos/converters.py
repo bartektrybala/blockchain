@@ -14,7 +14,7 @@ def int_to_bytes(x: int) -> bytes:
 converter.register_unstructure_hook(datetime, lambda dt: dt.isoformat())
 converter.register_structure_hook(datetime, lambda s, _: datetime.fromisoformat(s))
 
-converter.register_unstructure_hook(bytes, lambda dt: int.from_bytes(dt))
+converter.register_unstructure_hook(bytes, lambda dt: int.from_bytes(dt, "big"))
 converter.register_structure_hook(bytes, lambda s, _: int_to_bytes(s))
 
 converter.register_unstructure_hook(Decimal, str)

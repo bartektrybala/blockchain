@@ -45,9 +45,9 @@ class ChainDto:
         security_hashes = []
 
         for i in range(1, number_of_security_hashes + 1):
-            previous_block_int = int.from_bytes(block.previous_hash)
-            x_i = sha256((previous_block_int + i).to_bytes(32)).digest()
-            n_i = int.from_bytes(x_i) % (chain_length - i)
+            previous_block_int = int.from_bytes(block.previous_hash, "big")
+            x_i = sha256((previous_block_int + i).to_bytes(32, "big")).digest()
+            n_i = int.from_bytes(x_i, "big") % (chain_length - i)
 
             k = 1
             while self.blocks[n_i].get_hash() in security_hashes:

@@ -1,4 +1,5 @@
 from django.contrib.postgres.fields import ArrayField
+from django.core.exceptions import ValidationError
 from django.db.models import Model
 from django.db.models.deletion import CASCADE
 from django.db.models.fields import BinaryField, CharField, DateTimeField, DecimalField
@@ -51,5 +52,19 @@ class Chain(Model):
     def get_last_block(self) -> BlockDto:
         return BlockDto.from_dict(self.blocks[-1])
 
-    def convert_to_dto(self):
+    def convert_to_dto(self) -> ChainDto:
         return ChainDto.from_chain_object(self)
+
+    def validate_chain(self) -> bool:
+        return self.convert_to_dto().validate_chain()
+
+    def add_block(self, block: BlockDto) -> None:
+        if not Block.objects.filter(previous_hash=block.previous_hash).exists():
+            raise ValidationError("Block does not exist")
+
+        self.blocks.append(block.to_dict())
+        if self.validate_chain():
+            # add block to chain
+            self.save()
+        else:
+            raise ValidationError("Invalid chain")

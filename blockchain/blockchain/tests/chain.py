@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 
 from django.apps import apps as django_apps
+from django.core.exceptions import ValidationError
 from django.test.testcases import TestCase
 
 from blockchain.dtos import BlockDto, ChainDto, TransactionDto, initial_block
@@ -47,33 +48,65 @@ class TestChainModel(SetupMixin):
                 "transactions": [
                     {
                         "amount": "1000.00000",
-                        "sender": int.from_bytes(sender.public_key),
-                        "recipient": int.from_bytes(recipient.public_key),
+                        "sender": int.from_bytes(sender.public_key, "big"),
+                        "recipient": int.from_bytes(recipient.public_key, "big"),
                     }
                 ],
-                "previous_hash": int.from_bytes(b"first_block"),
-                "security_hashes": [int.from_bytes(b"first_block")],
+                "previous_hash": int.from_bytes(b"first_block", "big"),
+                "security_hashes": [int.from_bytes(b"first_block", "big")],
             }
         ]
 
     def test_get_last_block_method(self):
         last_block = self.test_chain.get_last_block()
-        test_block = deepcopy(self.test_block)
-        assert last_block == test_block.convert_to_dto()
+        assert last_block == self.test_block.convert_to_dto()
 
     def test_convert_to_dto(self):
-        test_chain = deepcopy(self.test_chain)
-        chain_dto = test_chain.convert_to_dto()
-        test_block = deepcopy(self.test_block)
+        chain_dto = self.test_chain.convert_to_dto()
         assert chain_dto == ChainDto(
-            blocks=[test_block.convert_to_dto()],
+            blocks=[self.test_block.convert_to_dto()],
             difficulty=self.test_chain.difficulty,
         )
 
-    def test_validate_chain_method(self):
+    def test_add_non_existing_block(self):
         test_chain = deepcopy(self.test_chain)
-        chain_dto = test_chain.convert_to_dto()
-        assert chain_dto.validate_chain() is True
+        new_block_dto = BlockDto(
+            previous_hash=test_chain.get_last_block().get_hash(),
+            transactions=[
+                TransactionDto(
+                    sender=self.test_sender.public_key,
+                    recipient=self.test_recipient.public_key,
+                    amount=Decimal("20.00"),
+                )
+            ],
+            timestamp=datetime.now(),
+        )
+
+        with self.assertRaisesMessage(ValidationError, "Block does not exist"):
+            test_chain.add_block(block=new_block_dto)
+
+    def test_add_block_method(self):
+        test_chain = deepcopy(self.test_chain)
+        now = datetime.now()
+        Block.objects.create(
+            previous_hash=test_chain.get_last_block().get_hash(),
+            security_hashes=[test_chain.get_last_block().get_hash()],
+            timestamp=now,
+            proof="0001",
+        )
+        new_block_dto = BlockDto(
+            previous_hash=test_chain.get_last_block().get_hash(),
+            transactions=[
+                TransactionDto(
+                    sender=self.test_sender.public_key,
+                    recipient=self.test_recipient.public_key,
+                    amount=Decimal("20.00"),
+                )
+            ],
+            timestamp=now,
+        )
+        test_chain.add_block(block=new_block_dto)
+        assert test_chain.get_last_block() == new_block_dto
 
 
 class TestChainDto(TestCase):
