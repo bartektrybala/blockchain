@@ -13,7 +13,7 @@ class BlockDto:
     transactions: list[TransactionDto]
     timestamp: datetime
     security_hashes: list[bytes] = field(default_factory=list)
-    proof: int = 0
+    proof: str = "0001"
 
     @staticmethod
     def from_block_object(block):
@@ -26,9 +26,18 @@ class BlockDto:
             transactions=[transaction.convert_to_dto() for transaction in transactions],
         )
 
+    def to_dict(self) -> dict:
+        return converter.unstructure(self)
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @staticmethod
+    def from_dict(block_dict: dict):
+        return converter.structure(block_dict, BlockDto)
+
     def get_hash(self):
-        unstructured = converter.unstructure(self)
-        stringified = json.dumps(unstructured)
+        stringified = self.to_json()
         return sha256(stringified.encode()).digest()
 
     def mine_block(self, difficulty: str):

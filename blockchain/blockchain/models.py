@@ -2,6 +2,7 @@ from django.contrib.postgres.fields import ArrayField
 from django.db.models import Model
 from django.db.models.deletion import CASCADE
 from django.db.models.fields import BinaryField, CharField, DateTimeField, DecimalField
+from django.db.models.fields.json import JSONField
 from django.db.models.fields.related import ForeignKey
 from wallets.models import Wallet
 
@@ -40,3 +41,11 @@ class Block(Model):
     def get_hash(self) -> bytes:
         block_dto = self.convert_to_dto()
         return block_dto.get_hash()
+
+
+class Chain(Model):
+    blocks = ArrayField(JSONField(default=dict))
+    difficulty = CharField(max_length=32)
+
+    def get_last_block(self) -> BlockDto:
+        return BlockDto.from_dict(self.blocks[-1])
