@@ -23,6 +23,16 @@ class TransactionSerializer(ModelSerializer):
         model = Transaction
         fields = ("sender", "recipient", "amount")
 
+    def handle_balance_changes(self, transaction: Transaction):
+        sender = transaction.sender
+        recipient = transaction.recipient
+        sender.balance -= transaction.amount
+        recipient.balance += transaction.amount
+        sender.save()
+        recipient.save()
+
     def create(self, validated_data):
         # TODO: run mining process here
-        return super().create(validated_data)
+        transaction = super().create(validated_data)
+        self.handle_balance_changes(transaction)
+        return transaction
