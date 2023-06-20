@@ -3,11 +3,9 @@ from decimal import Decimal
 
 from cattrs import Converter
 
+from blockchain.utils import int_to_bytes
+
 converter = Converter()
-
-
-def int_to_bytes(x: int) -> bytes:
-    return x.to_bytes((x.bit_length() + 7) // 8, "big")
 
 
 # datetime is not a primitive type, so we need to register hooks for it

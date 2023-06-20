@@ -1,0 +1,21 @@
+
+
+P1 = Person1
+P2 = Person2
+
+
+P1 ->(10c) P2 == T1
+
+
+APP [running]
+
+
+ENDPOINTS:
+
+- CREATE A Transaction (Block)
+- Retrieve One Block
+- Number of Blocks (Chain)
+- CHECK YOUR Wallet BALANCE
+
+
+http://localhost:8000/api/block/asdkjas021931nsjkada/ -> BLOCK

@@ -32,7 +32,6 @@ ALLOWED_HOSTS = []
 
 # Application definition
 PROJECT_APPS = [
-    "api",
     "blockchain",
     "wallets",
 ]
@@ -135,3 +134,4 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Blockchain settings
 SIDE_LINKS_NUMBER = 5
+APPEND_SLASH = False
