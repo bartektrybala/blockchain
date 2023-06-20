@@ -16,7 +16,6 @@ services:
       test: ["CMD", "pg_isready", "-U", "postgres"]
       interval: 5s
       retries: 5
-    restart: always
 
 volumes:
   dbdata:
