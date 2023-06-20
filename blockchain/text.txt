@@ -12,10 +12,11 @@ APP [running]
 
 ENDPOINTS:
 
-- CREATE A Transaction (Block)
-- Retrieve One Block
+- CREATE A Transaction (Block) 1/2 DONE
+- Retrieve One Block DONE
+
 - Number of Blocks (Chain)
-- CHECK YOUR Wallet BALANCE
+- CHECK YOUR Wallet BALANCE DONE in django-admin
 
 
 http://localhost:8000/api/block/asdkjas021931nsjkada/ -> BLOCK
