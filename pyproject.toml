@@ -21,6 +21,7 @@ django-sortedm2m = "^3.1.1"
 tomli = "^2.0.1"
 rich = "^13.4.1"
 djangorestframework = "^3.14.0"
+tblib = "^1.7.0"
 
 
 [build-system]
