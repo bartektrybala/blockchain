@@ -85,10 +85,6 @@ class ChainDto:
             current_block = self.blocks[i]
             previous_block = self.blocks[i - 1]
 
-            # TODO: fix this by storing difficulty in the block
-            # if not current_block.validate_block(self.difficulty):
-            #     return False
-
             if current_block.previous_hash != previous_block.get_hash():
                 return False
 

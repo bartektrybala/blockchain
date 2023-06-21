@@ -41,8 +41,8 @@ class BlockDto:
         return sha256(stringified.encode()).digest()
 
     def mine_block(self, difficulty: str):
-        while self.validate_block(difficulty):
-            self.proof += 1
+        while not self.validate_block(difficulty):
+            self.proof += "1"
 
     def validate_block(self, difficulty: int) -> bool:
         """
@@ -51,4 +51,5 @@ class BlockDto:
         zeros directly, most PoW blockchains use a more sophisticated approach to adjust the difficulty.
         """
         zeros_count = len(difficulty)
+        # TODO: use int and < operator
         return self.get_hash().hex()[:zeros_count] == difficulty

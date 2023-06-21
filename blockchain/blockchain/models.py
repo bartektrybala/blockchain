@@ -68,3 +68,7 @@ class Chain(Model):
             self.save()
         else:
             raise ValidationError("Invalid chain")
+
+
+def get_chain() -> Chain:
+    return Chain.objects.first()
